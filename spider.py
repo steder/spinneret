@@ -40,20 +40,24 @@ def main(root, debug=False):
 
     visited = {}
 
-    count = 0
-    for link in bro.links():
-        if is_internal_url(link.url) and link.url not in visited:
-            visited[link.url] = link.absolute_url
-            print "Opening: %s"%(link.absolute_url)
-            try:
-                test_bro.open(link.absolute_url)
-                count += 1
-                #print test_bro.response().info()
-            except urllib2.HTTPError:
-                print "Error opening: %s"%(link.absolute_url)
+    def visit_links(url, links, level=0, max_level=5):
+        print "visiting links on: %s (level=%s)"%(url, level)
+        for link in links:
+            print "inspecting link:", link.url
+            if is_internal_url(link.url) and link.url not in visited:
+                visited[link.url] = link.absolute_url
+                print "Opening: %s"%(link.absolute_url)
+                try:
+                    test_bro.open(link.absolute_url)
+                    if level < max_level:
+                        visit_links(link.absolute_url,
+                                    test_bro.links(),
+                                    level=level+1)
+                except urllib2.HTTPError:
+                    print "Error opening: %s"%(link.absolute_url)
 
-        if debug and count > 10:
-            break
+    visit_links(root, bro.links())
+
     sitemap = urls_to_sitemap(visited.keys())
     print sitemap
     with open("sitemap.yaml", "w") as f:
