@@ -16,11 +16,10 @@ def is_internal_url(url):
 
 
 def urls_to_sitemap(urls):
-    sitemap = {"/": {}}
+    sitemap = {"": {}}
     for url in urls:
         segments = (segment for segment in url.split("/") if segment != '')
-        root = sitemap["/"]
-        print "root:", "/"
+        root = sitemap[""]
         for segment in segments:
             if root.get(segment):
                 print "root:", root, segment
@@ -59,6 +58,7 @@ def main(root, debug=False):
     print sitemap
     with open("sitemap.yaml", "w") as f:
         print yaml.dump(sitemap, f)
+
 
 
 if __name__=="__main__":

@@ -1,2 +1,4 @@
+gevent==0.13.7
 mechanize==0.2.5
-pyyaml
+pyyaml==3.10
+requests==0.13.3
