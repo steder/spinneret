@@ -54,37 +54,38 @@ def main(root):
     test_bro = mechanize.Browser()
 
     visited = {}
+    ignored = {}
 
-    def visit_links(url, links, visitor_depth=1, max_depth=6):
-        print "visiting links on %s (depth: %s/%s)"%(url, visitor_depth, max_depth)
-        for link in links:
+    def visit_links(url, links, max_depth=3):
+        print "visiting links on: %s"%(url,)
+        # for link in links:
+        while links:
+            link = links.pop(0)
             depth = get_depth(link.url)
-            if "product" in link.url:
-                print "\tproduct link.url:", link.url
-                print "\tinternal:", is_internal_url(link.url)
-                print "\timage:", not is_image_url(link.url)
-                print "\tvisited:", link.url not in visited
-                print "\tvisitor_depth <= max_depth:", visitor_depth <= max_depth
-                print "\tdepth <= max_depth:", depth <= max_depth
             if (is_internal_url(link.url) and
                 not is_image_url(link.url) and
                 link.url not in visited and
-                visitor_depth <= max_depth and
                 depth <= max_depth):
                 visited[link.url] = link.absolute_url
                 try:
+                    print "Opening %s: ..."%(link.absolute_url,),
                     test_bro.open(link.absolute_url)
                     if depth < max_depth:
                         try:
-                            visit_links(link.absolute_url,
-                                        test_bro.links(),
-                                        visitor_depth=depth + 1)
+                            links.extend(link for link in test_bro.links()
+                                         if link.url not in visited and link.url not in ignored)
                         except mechanize.BrowserStateError:
-                            print "Error getting links for: %s"%(link.absolute_url,)
+                            print "ERROR"
+                            print "\tError getting links for: %s"%(link.absolute_url,)
                 except urllib2.HTTPError:
-                    print "Error opening: %s"%(link.absolute_url,)
+                    print "ERROR"
+                    print "\tError opening: %s"%(link.absolute_url,)
+                else:
+                    print "OK"
+            else:
+                ignored[link.url] = link.absolute_url
 
-    visit_links(root, bro.links())
+    visit_links(root, list(bro.links()))
 
     sitemap = urls_to_sitemap(visited.keys())
     with open("sitemap.yaml", "w") as f:
