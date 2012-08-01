@@ -14,10 +14,10 @@ This script runs forever (or until it's killed) checking
 these URLs and periodically outputing stats.
 
 """
-import os
+import itertools
 import timeit
 
-import gevent
+from gevent import pool
 from gevent import monkey
 import requests
 import yaml
@@ -42,35 +42,55 @@ def sitemap_to_urls(sitemap_path):
             urls.append(url)
             append_paths(url_path, d[key], urls)
     append_paths((), sitemap, urls)
-    print urls
+
     return urls
 
 
+
+def takeN(size, iterable):
+    batch = []
+    for n, i in enumerate(iterable):
+        batch.append(i)
+        if n % size == 0:
+            yield batch
+            batch = []
+        yield batch
+
+
+base = "http://beta.threadless.com"
+
+
+def get_url(url):
+    absolute_url = base + url
+    print "getting: %s ... "%(absolute_url,)
+    start = timeit.default_timer()
+    try:
+        resp = requests.get(absolute_url, timeout=30.0)
+    except requests.exceptions.Timeout:
+        stop = timeit.default_timer()
+        elapsed = stop - start
+        print "%s: Timed out (%s)"%(absolute_url, elapsed)
+    except requests.exceptions.SSLError:
+        stop = timeit.default_timer()
+        elapsed = stop - start
+        print "%s: SSL Error (%s)"%(absolute_url, elapsed)
+    else:
+        stop = timeit.default_timer()
+        elapsed = stop - start
+        print "%s: %s (%s) (%4f)"%(absolute_url, resp.status_code, resp.reason, elapsed)
+
+
+
 def main(sitemap_path):
-    urls = sitemap_to_urls(sitemap_path)
+    inflight = 10
 
-    def get_url(base, url):
-        absolute_url = base + url
-        print "getting: %s ... "%(absolute_url,)
-        start = timeit.default_timer()
-        try:
-            resp = requests.get(absolute_url, timeout=30.0)
-        except requests.exceptions.Timeout:
-            stop = timeit.default_timer()
-            elapsed = stop - start
-            print "%s: Timed out (%s)"%(absolute_url, elapsed)
-        else:
-            stop = timeit.default_timer()
-            elapsed = stop - start
-            print "%s: %s (%s) (%4f)"%(absolute_url, resp.status_code, resp.reason, elapsed)
+    urls = itertools.cycle(sitemap_to_urls(sitemap_path))
+
+    p = pool.Pool(inflight)
+    p.map(get_url, urls)
+    p.join()
 
 
-    jobs = []
-    for url in urls:
-        job = gevent.spawn(get_url, "http://beta.threadless.com", url)
-        jobs.append(job)
-
-    gevent.joinall(jobs)
 
 if __name__=="__main__":
     main("sitemap.yaml")

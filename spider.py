@@ -2,6 +2,7 @@
 This script clicks all the links on a page to generate some beta traffic
 """
 
+import httplib
 import urllib2
 
 import mechanize
@@ -57,7 +58,7 @@ def main(root):
     ignored = {}
 
     def visit_links(url, links, max_depth=3):
-        print "visiting links on: %s"%(url,)
+        print "visiting links on: %s (nLinks=%s)"%(url, len(links))
         # for link in links:
         while links:
             link = links.pop(0)
@@ -80,6 +81,9 @@ def main(root):
                 except urllib2.HTTPError:
                     print "ERROR"
                     print "\tError opening: %s"%(link.absolute_url,)
+                except httplib.BadStatusLine:
+                    print "ERROR"
+                    print "\tBad status error: %s"%(link.absolute_url,)
                 else:
                     print "OK"
             else:
