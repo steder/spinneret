@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+#-*- mode: python -*-
+import sys
+
+from spinneret import traffic
+
+base = "http://localhost"
+
+if len(sys.argv) > 1:
+    base = sys.argv[1]
+
+traffic.main(base, "sitemap.yaml")
+

@@ -14,6 +14,7 @@ This script runs forever (or until it's killed) checking
 these URLs and periodically outputing stats.
 
 """
+import sys
 import itertools
 import timeit
 
@@ -81,7 +82,10 @@ def get_url(url):
 
 
 
-def main(sitemap_path):
+def main(base_url, sitemap_path):
+    global base
+    base = base_url
+
     inflight = 10
 
     urls = itertools.cycle(sitemap_to_urls(sitemap_path))
@@ -89,9 +93,4 @@ def main(sitemap_path):
     p = pool.Pool(inflight)
     p.map(get_url, urls)
     p.join()
-
-
-
-if __name__=="__main__":
-    main("sitemap.yaml")
 

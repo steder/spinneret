@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+#-*- mode: python -*-
+
+from spinneret import spider
+
+spider.main("http://beta.threadless.com/")
