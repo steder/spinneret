@@ -75,6 +75,10 @@ def get_url(url):
         stop = timeit.default_timer()
         elapsed = stop - start
         print "%s: SSL Error (%s)"%(absolute_url, elapsed)
+    except requests.exceptions.ConnectionError:
+        stop = timeit.default_timer()
+        elapsed = stop - start
+        print "%s: Connection Error (%s)"%(absolute_url, elapsed)
     else:
         stop = timeit.default_timer()
         elapsed = stop - start
@@ -88,9 +92,11 @@ def main(base_url, sitemap_path):
 
     inflight = 10
 
-    urls = itertools.cycle(sitemap_to_urls(sitemap_path))
+    urls = sitemap_to_urls(sitemap_path)
 
     p = pool.Pool(inflight)
-    p.map(get_url, urls)
-    p.join()
+
+    while True:
+        p.map(get_url, urls)
+        p.join()
 
