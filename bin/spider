@@ -1,6 +1,13 @@
 #!/usr/bin/env python
 #-*- mode: python -*-
 
+import sys
+
 from spinneret import spider
 
-spider.main("http://beta.threadless.com/")
+if len(sys.argv) > 1:
+    base = sys.argv[1]
+else:
+    base = 'http://www.threadless.com/'
+
+spider.main(base)
