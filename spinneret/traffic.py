@@ -15,6 +15,7 @@ these URLs and periodically outputing stats.
 
 """
 import logging
+import signal
 import timeit
 
 from gevent import pool
@@ -90,6 +91,8 @@ def main(arguments):
     inflight = arguments.inflight
     processes = arguments.processes
     debug = arguments.debug
+    if arguments.ttl:
+        signal.alarm(arguments.ttl)
 
     if debug:
         logging.basicConfig(level=logging.DEBUG,

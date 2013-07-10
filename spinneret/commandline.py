@@ -26,6 +26,9 @@ parser.add_argument('-p', '--processes',
 parser.add_argument('-d', '--debug',
                     action='store_true',
                     help='')
+parser.add_argument('-t', '--ttl',
+                    metavar='SECONDS', type=int, default=0,
+                    help='')
 
 subparsers = parser.add_subparsers()
 
