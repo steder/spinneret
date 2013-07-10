@@ -30,6 +30,8 @@ def long_description():
 
 
 setup(name='spinneret',
+      author="Mike Steder",
+      author_email="steder@gmail.com",
       version=version(),
       description='Quick web spider and traffic generator',
       packages=find_packages(),
