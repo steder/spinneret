@@ -85,7 +85,10 @@ def get_url(url):
         logging.debug("%s: %s (%s) (%4f)", absolute_url, resp.status_code, resp.reason, elapsed)
 
 
-def run(inflight, urls):
+def run(inflight, urls, ttl):
+    if ttl > 0:
+        signal.alarm(ttl)
+
     gevent.reinit()
     p = pool.Pool(inflight)
     while True:
@@ -103,9 +106,6 @@ def main(arguments):
     debug = arguments.debug
     ttl = arguments.ttl
 
-    if ttl > 0:
-        signal.alarm(ttl)
-
     if debug:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(asctime)s - %(levelname)s - %(message)s")
@@ -120,8 +120,10 @@ def main(arguments):
     urls = sitemap_to_urls(sitemap_path)
 
     if processes == 1:
-        run(inflight, urls)
+        run(inflight, urls, ttl)
     else:
-        process_list = [Process(target=run, args=(inflight, urls)) for x in xrange(processes)]
+        process_list = [Process(target=run, args=(inflight, urls, ttl)) for x in xrange(processes)]
         for proc in process_list:
             proc.start()
+        for proc in process_list:
+            proc.join()
