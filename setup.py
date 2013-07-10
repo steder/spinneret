@@ -2,9 +2,6 @@
 
 import os
 
-#import distribute_setup
-#distribute_setup.use_setuptools()
-
 from setuptools import find_packages
 from setuptools import setup
 
