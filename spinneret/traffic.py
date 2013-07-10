@@ -86,11 +86,9 @@ def get_url(url):
 
 
 
-def main(base_url, sitemap_path):
+def main(base_url, sitemap_path, inflight=10):
     global base
     base = base_url
-
-    inflight = 10
 
     urls = sitemap_to_urls(sitemap_path)
 
@@ -99,4 +97,3 @@ def main(base_url, sitemap_path):
     while True:
         p.map(get_url, urls)
         p.join()
-
