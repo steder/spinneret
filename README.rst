@@ -13,14 +13,16 @@ Setup
     cd spinneret
     mkdir -p ~/.virtualenvs
     virtualenv ~/.virtualenvs/spinneret
-    pip install -r requirements
+    python setup.py develop
+
+
 
 Generating a sitemap
 -----------------------------
 
 ::
 
-    $ ./bin/spider
+   spinneret spider --base_url http://localhost:8000
 
 Because this can take a while I've included a sample `sitemap.yaml`
 that can be used to immediately generate traffic.
@@ -31,5 +33,4 @@ Using that sitemap to generate requests against a site
 
 ::
 
-    ./bin/traffic http://godzilla.threadless.com
-
+   spinneret traffic --base_url http://localhost:8000 --inflight 100
