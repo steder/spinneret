@@ -3,6 +3,8 @@ This script clicks all the links on a page to generate some beta traffic
 """
 
 import httplib
+import logging
+import ssl
 import urllib2
 
 import mechanize
@@ -15,7 +17,6 @@ def is_internal_url(url):
     return False
 
 
-
 image_extensions = ('gif',
                     'jpg',
                     'png')
@@ -24,7 +25,6 @@ def is_image_url(url):
         if url.endswith(extension):
             return True
     return False
-
 
 
 def urls_to_sitemap(urls):
@@ -41,14 +41,24 @@ def urls_to_sitemap(urls):
     return sitemap
 
 
-
 def get_depth(url):
     depth = len([segment for segment in url.split("/") if segment])
     return depth
 
 
+def main(arguments):
+    root = arguments.base_url
+    debug = arguments.debug
 
-def main(root):
+    if debug:
+        logging.basicConfig(level=logging.DEBUG,
+                            format="%(asctime)s - %(levelname)s - %(message)s")
+    else:
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s - %(levelname)s - %(message)s")
+
+    logging.info("spinneret spidering - URL=%s", root)
+
     bro = mechanize.Browser()
     bro.open(root)
 
@@ -58,7 +68,7 @@ def main(root):
     ignored = {}
 
     def visit_links(url, links, max_depth=3):
-        print "visiting links on: %s (nLinks=%s)"%(url, len(links))
+        logging.info("visiting links on: %s (nLinks=%s)", url, len(links))
         # for link in links:
         while links:
             link = links.pop(0)
@@ -69,23 +79,20 @@ def main(root):
                 depth <= max_depth):
                 visited[link.url] = link.absolute_url
                 try:
-                    print "Opening %s: ..."%(link.absolute_url,),
+                    logging.debug("Opening %s: ...", link.absolute_url)
                     test_bro.open(link.absolute_url)
                     if depth < max_depth:
                         try:
                             links.extend(link for link in test_bro.links()
                                          if link.url not in visited and link.url not in ignored)
                         except mechanize.BrowserStateError:
-                            print "ERROR"
-                            print "\tError getting links for: %s"%(link.absolute_url,)
+                            logging.error("Error getting links for: %s", link.absolute_url)
                 except urllib2.HTTPError:
-                    print "ERROR"
-                    print "\tError opening: %s"%(link.absolute_url,)
+                    logging.error("Error opening: %s", link.absolute_url)
                 except httplib.BadStatusLine:
-                    print "ERROR"
-                    print "\tBad status error: %s"%(link.absolute_url,)
+                    logging.error("Bad status error: %s", link.absolute_url)
                 else:
-                    print "OK"
+                    logging.info("%s OK", link.absolute_url)
             else:
                 ignored[link.url] = link.absolute_url
 
@@ -96,6 +103,3 @@ def main(root):
         yaml.dump(sitemap, f)
     with open("links.yaml", "w") as f2:
         yaml.dump(visited, f2)
-
-
-

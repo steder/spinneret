@@ -14,8 +14,7 @@ This script runs forever (or until it's killed) checking
 these URLs and periodically outputing stats.
 
 """
-import sys
-import itertools
+import logging
 import timeit
 
 from gevent import pool
@@ -24,9 +23,8 @@ import requests
 import yaml
 
 
-
 monkey.patch_socket()
-
+requests_log = logging.getLogger("requests")
 
 
 def sitemap_to_urls(sitemap_path):
@@ -37,7 +35,6 @@ def sitemap_to_urls(sitemap_path):
 
     def append_paths(parent_path, d, urls):
         for key in d:
-            print parent_path, key
             url_path = parent_path + (key,)
             url = "/".join(url_path)
             urls.append(url)
@@ -58,37 +55,52 @@ def takeN(size, iterable):
         yield batch
 
 
-base = "http://beta.threadless.com"
+base = ""
 
 
 def get_url(url):
     absolute_url = base + url
-    print "getting: %s ... "%(absolute_url,)
+    logging.debug("getting: %s ... ", absolute_url)
     start = timeit.default_timer()
     try:
         resp = requests.get(absolute_url, timeout=30.0)
     except requests.exceptions.Timeout:
         stop = timeit.default_timer()
         elapsed = stop - start
-        print "%s: Timed out (%s)"%(absolute_url, elapsed)
+        logging.debug("%s: Timed out (%s)", absolute_url, elapsed)
     except requests.exceptions.SSLError:
         stop = timeit.default_timer()
         elapsed = stop - start
-        print "%s: SSL Error (%s)"%(absolute_url, elapsed)
+        logging.debug("%s: SSL Error (%s)", absolute_url, elapsed)
     except requests.exceptions.ConnectionError:
         stop = timeit.default_timer()
         elapsed = stop - start
-        print "%s: Connection Error (%s)"%(absolute_url, elapsed)
+        logging.debug("%s: Connection Error (%s)", absolute_url, elapsed)
     else:
         stop = timeit.default_timer()
         elapsed = stop - start
-        print "%s: %s (%s) (%4f)"%(absolute_url, resp.status_code, resp.reason, elapsed)
+        logging.debug("%s: %s (%s) (%4f)", absolute_url, resp.status_code, resp.reason, elapsed)
 
 
-
-def main(base_url, sitemap_path, inflight=10):
+def main(arguments):
     global base
-    base = base_url
+
+    base = arguments.base_url
+    sitemap_path = arguments.sitemap_path
+    inflight = arguments.inflight
+    processes = arguments.processes
+    debug = arguments.debug
+
+    if debug:
+        logging.basicConfig(level=logging.DEBUG,
+                            format="%(asctime)s - %(levelname)s - %(message)s")
+    else:
+        requests_log.setLevel(logging.WARNING)
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s - %(levelname)s - %(message)s")
+
+    logging.info("spinneret generating traffic - URL=%s N=%s P=%s",
+                 base, inflight, processes)
 
     urls = sitemap_to_urls(sitemap_path)
 
