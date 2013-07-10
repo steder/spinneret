@@ -14,10 +14,12 @@ This script runs forever (or until it's killed) checking
 these URLs and periodically outputing stats.
 
 """
+from multiprocessing import Process
 import logging
 import signal
 import timeit
 
+import gevent
 from gevent import pool
 from gevent import monkey
 import requests
@@ -83,6 +85,14 @@ def get_url(url):
         logging.debug("%s: %s (%s) (%4f)", absolute_url, resp.status_code, resp.reason, elapsed)
 
 
+def run(inflight, urls):
+    gevent.reinit()
+    p = pool.Pool(inflight)
+    while True:
+        p.map(get_url, urls)
+        p.join()
+
+
 def main(arguments):
     global base
 
@@ -91,8 +101,10 @@ def main(arguments):
     inflight = arguments.inflight
     processes = arguments.processes
     debug = arguments.debug
-    if arguments.ttl:
-        signal.alarm(arguments.ttl)
+    ttl = arguments.ttl
+
+    if ttl > 0:
+        signal.alarm(ttl)
 
     if debug:
         logging.basicConfig(level=logging.DEBUG,
@@ -107,8 +119,9 @@ def main(arguments):
 
     urls = sitemap_to_urls(sitemap_path)
 
-    p = pool.Pool(inflight)
-
-    while True:
-        p.map(get_url, urls)
-        p.join()
+    if processes == 1:
+        run(inflight, urls)
+    else:
+        process_list = [Process(target=run, args=(inflight, urls)) for x in xrange(processes)]
+        for proc in process_list:
+            proc.start()
