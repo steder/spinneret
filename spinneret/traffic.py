@@ -14,9 +14,11 @@ This script runs forever (or until it's killed) checking
 these URLs and periodically outputing stats.
 
 """
+import collections
 from multiprocessing import Process
 import logging
 import signal
+import time
 import timeit
 
 import gevent
@@ -61,28 +63,54 @@ def takeN(size, iterable):
 base = ""
 
 
+# STATS!
+START_TIME = time.time()
+TOTAL_ELAPSED = time.time() - START_TIME
+LAST_NOTIFIED = 0.0
+NOTIFICATION_INTERVAL = 60.0
+COUNTER = collections.Counter()
+
+
 def get_url(url):
+    global LAST_NOTIFIED, TOTAL_ELAPSED
+
     absolute_url = base + url
     logging.debug("getting: %s ... ", absolute_url)
     start = timeit.default_timer()
+
     try:
         resp = requests.get(absolute_url, timeout=30.0)
     except requests.exceptions.Timeout:
         stop = timeit.default_timer()
         elapsed = stop - start
         logging.debug("%s: Timed out (%s)", absolute_url, elapsed)
+        key = "{}:TIMEOUT".format(absolute_url)
+        COUNTER.update({key: 1})
     except requests.exceptions.SSLError:
         stop = timeit.default_timer()
         elapsed = stop - start
         logging.debug("%s: SSL Error (%s)", absolute_url, elapsed)
+        key = "{}:SSL_ERROR".format(absolute_url)
+        COUNTER.update({key: 1})
     except requests.exceptions.ConnectionError:
         stop = timeit.default_timer()
         elapsed = stop - start
         logging.debug("%s: Connection Error (%s)", absolute_url, elapsed)
+        key = "{}:CONNECT_ERROR".format(absolute_url)
+        COUNTER.update({key: 1})
     else:
         stop = timeit.default_timer()
         elapsed = stop - start
         logging.debug("%s: %s (%s) (%4f)", absolute_url, resp.status_code, resp.reason, elapsed)
+        key = "{}:{}".format(absolute_url, resp.status_code)
+        COUNTER.update({key: 1})
+    finally:
+        TOTAL_ELAPSED = time.time() - START_TIME
+        if TOTAL_ELAPSED > LAST_NOTIFIED + NOTIFICATION_INTERVAL:
+            LAST_NOTIFIED = TOTAL_ELAPSED
+            logging.info("most common response stats:")
+            for x in COUNTER.most_common(10):
+                logging.info("\t%s", x)
 
 
 def run(inflight, urls, ttl):
